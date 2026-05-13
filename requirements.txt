@@ -1,0 +1,16 @@
+# ── ELITE AI Agent v2 — Production Dependencies ──
+flask>=3.0
+requests>=2.31
+psutil>=5.9
+pydantic>=2.5
+pydantic-settings>=2.1
+python-dotenv>=1.0
+duckduckgo-search>=6.0
+rich>=13.0
+
+# ── Optional: Screen Agent ────────────────────────
+# Pillow
+# pytesseract
+
+# ── Optional: Action Agent ────────────────────────
+# pyautogui

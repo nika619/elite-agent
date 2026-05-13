@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ELITE — AI Agent System v2.0</title>
+  <meta name="description" content="ELITE AI Agent — Autonomous AI agent powered by local LLMs. Code generation, web search, file operations, system monitoring, and more." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design Tokens ────────────────────────────────────────── */
+    :root {
+      --bg-primary:    #06080c;
+      --bg-secondary:  #0c1017;
+      --bg-surface:    #111620;
+      --bg-elevated:   #161c28;
+      --bg-hover:      #1c2435;
+
+      --border-subtle: #1a2235;
+      --border-default:#222d40;
+
+      --text-primary:  #e2e8f0;
+      --text-secondary:#8b98af;
+      --text-muted:    #4a5568;
+
+      --accent-green:  #22c55e;
+      --accent-blue:   #3b82f6;
+      --accent-cyan:   #06b6d4;
+      --accent-yellow: #eab308;
+      --accent-red:    #ef4444;
+      --accent-purple: #a855f7;
+      --accent-orange: #f97316;
+
+      --glow-green:    rgba(34, 197, 94, 0.15);
+      --glow-blue:     rgba(59, 130, 246, 0.15);
+
+      --font-mono:     'JetBrains Mono', 'Consolas', monospace;
+      --font-sans:     'Inter', -apple-system, sans-serif;
+
+      --radius-sm:     6px;
+      --radius-md:     10px;
+      --radius-lg:     16px;
+
+      --transition:    0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── Reset ────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 60px 1fr 68px;
+      overflow: hidden;
+    }
+
+    /* ── Header ───────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-subtle);
+      position: relative;
+      z-index: 10;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: 4px;
+      background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .version-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: var(--glow-green);
+      color: var(--accent-green);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    /* ── Status Indicators ────────────────────────────────────── */
+    .status-bar {
+      display: flex;
+      gap: 20px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-item .label { text-transform: uppercase; letter-spacing: 1px; }
+    .status-item .value { color: var(--accent-cyan); font-weight: 600; }
+
+    .health-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 6px var(--accent-green);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    .health-dot.disconnected {
+      background: var(--accent-red);
+      box-shadow: 0 0 6px var(--accent-red);
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    /* ── Chat Window ──────────────────────────────────────────── */
+    #chat {
+      overflow-y: auto;
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(34, 197, 94, 0.03), transparent 50%),
+        radial-gradient(ellipse at 80% 50%, rgba(59, 130, 246, 0.03), transparent 50%),
+        var(--bg-primary);
+    }
+
+    /* ── Messages ─────────────────────────────────────────────── */
+    .msg {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      animation: msg-in 0.3s ease-out;
+      max-width: 100%;
+    }
+
+    @keyframes msg-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .msg-timestamp { letter-spacing: 0.5px; }
+
+    .route-badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* Route-specific badge colors */
+    .route-coder        { background: rgba(34, 197, 94, 0.12); color: var(--accent-green); border: 1px solid rgba(34, 197, 94, 0.2); }
+    .route-search       { background: rgba(59, 130, 246, 0.12); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.2); }
+    .route-filesystem   { background: rgba(234, 179, 8, 0.12); color: var(--accent-yellow); border: 1px solid rgba(234, 179, 8, 0.2); }
+    .route-system       { background: rgba(6, 182, 212, 0.12); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.2); }
+    .route-telegram     { background: rgba(168, 85, 247, 0.12); color: var(--accent-purple); border: 1px solid rgba(168, 85, 247, 0.2); }
+    .route-orchestrator { background: rgba(249, 115, 22, 0.12); color: var(--accent-orange); border: 1px solid rgba(249, 115, 22, 0.2); }
+    .route-llm          { background: rgba(139, 152, 175, 0.1); color: var(--text-secondary); border: 1px solid rgba(139, 152, 175, 0.15); }
+    .route-error        { background: rgba(239, 68, 68, 0.12); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .route-info         { background: rgba(6, 182, 212, 0.12); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.2); }
+
+    .confidence-indicator {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Bubbles ──────────────────────────────────────────────── */
+    .bubble {
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-width: 820px;
+      font-size: 13px;
+    }
+
+    .user .bubble {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.03));
+      border: 1px solid rgba(59, 130, 246, 0.15);
+      border-left: 3px solid var(--accent-blue);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      align-self: flex-end;
+    }
+
+    .bot .bubble {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      font-family: var(--font-mono);
+    }
+
+    .thinking .bubble {
+      border-left: 3px solid var(--text-muted);
+      color: var(--text-muted);
+      font-style: italic;
+      animation: thinking-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes thinking-pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.9; }
+    }
+
+    /* ── Input Bar ────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 12px;
+    }
+
+    .prompt-indicator {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-green);
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    #input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      caret-color: var(--accent-green);
+      padding: 8px 0;
+    }
+    #input::placeholder {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    #send-btn {
+      background: linear-gradient(135deg, var(--accent-green), #16a34a);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 10px 22px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      transition: all var(--transition);
+      text-transform: uppercase;
+    }
+    #send-btn:hover {
+      box-shadow: 0 0 20px var(--glow-green);
+      transform: translateY(-1px);
+    }
+    #send-btn:active { transform: translateY(0); }
+    #send-btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* ── Scrollbar ────────────────────────────────────────────── */
+    #chat::-webkit-scrollbar { width: 4px; }
+    #chat::-webkit-scrollbar-track { background: transparent; }
+    #chat::-webkit-scrollbar-thumb {
+      background: var(--border-default);
+      border-radius: 99px;
+    }
+    #chat::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* ── Welcome card ─────────────────────────────────────────── */
+    .welcome-card {
+      background: linear-gradient(135deg, var(--bg-surface), var(--bg-elevated));
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 28px 32px;
+      max-width: 680px;
+    }
+    .welcome-title {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--accent-green);
+      margin-bottom: 12px;
+    }
+    .welcome-text {
+      color: var(--text-secondary);
+      line-height: 1.8;
+      font-size: 13px;
+    }
+    .welcome-text .cmd {
+      font-family: var(--font-mono);
+      color: var(--accent-cyan);
+      background: rgba(6, 182, 212, 0.08);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .agent-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-hover);
+      border: 1px solid var(--border-subtle);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .agent-chip:hover {
+      border-color: var(--accent-green);
+      color: var(--text-primary);
+      background: rgba(34, 197, 94, 0.05);
+    }
+    .agent-chip .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      header { padding: 0 16px; }
+      #chat { padding: 16px; }
+      .status-bar { display: none; }
+      .bubble { max-width: 100%; }
+      .agent-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">ELITE</div>
+    <span class="version-badge">v2.0</span>
+  </div>
+  <div class="header-right">
+    <div class="status-bar">
+      <div class="status-item">
+        <div class="health-dot" id="health-dot"></div>
+        <span class="label">Ollama</span>
+      </div>
+      <div class="status-item">
+        <span class="label">CPU</span>
+        <span class="value" id="cpu">—</span><span>%</span>
+      </div>
+      <div class="status-item">
+        <span class="label">RAM</span>
+        <span class="value" id="ram">—</span><span>%</span>
+      </div>
+      <div class="status-item">
+        <span class="label">Disk</span>
+        <span class="value" id="disk">—</span><span>%</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div id="chat">
+  <div class="welcome-card">
+    <div class="welcome-title">⚡ ELITE AI Agent System</div>
+    <div class="welcome-text">
+      Autonomous AI agent powered by local LLMs via Ollama.<br/>
+      Type any command — the router will automatically select the best agent.
+    </div>
+    <div class="agent-grid">
+      <div class="agent-chip" onclick="quickCmd('write a hello world script')">
+        <div class="dot" style="background: var(--accent-green)"></div>
+        Coder
+      </div>
+      <div class="agent-chip" onclick="quickCmd('search for latest AI news')">
+        <div class="dot" style="background: var(--accent-blue)"></div>
+        Search
+      </div>
+      <div class="agent-chip" onclick="quickCmd('list files in current directory')">
+        <div class="dot" style="background: var(--accent-yellow)"></div>
+        Filesystem
+      </div>
+      <div class="agent-chip" onclick="quickCmd('show system status')">
+        <div class="dot" style="background: var(--accent-cyan)"></div>
+        System
+      </div>
+      <div class="agent-chip" onclick="quickCmd('send alert test notification')">
+        <div class="dot" style="background: var(--accent-purple)"></div>
+        Telegram
+      </div>
+      <div class="agent-chip" onclick="quickCmd('smart task: organize desktop')">
+        <div class="dot" style="background: var(--accent-orange)"></div>
+        Orchestrator
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span class="prompt-indicator">ELITE ❯</span>
+  <input id="input" type="text" placeholder="Enter command or question…" autocomplete="off" />
+  <button id="send-btn">SEND</button>
+</footer>
+
+<script>
+  const chatEl  = document.getElementById('chat');
+  const inputEl = document.getElementById('input');
+  const sendBtn = document.getElementById('send-btn');
+
+  const ROUTE_CLASSES = {
+    coder: 'route-coder',
+    search: 'route-search',
+    filesystem: 'route-filesystem',
+    system: 'route-system',
+    telegram: 'route-telegram',
+    orchestrator: 'route-orchestrator',
+    llm: 'route-llm',
+    error: 'route-error',
+    info: 'route-info',
+  };
+
+  function timestamp() {
+    return new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  }
+
+  function addMsg(role, text, route, confidence) {
+    const cls = role === 'user' ? 'user' : 'bot';
+    const div = document.createElement('div');
+    div.className = `msg ${cls}`;
+
+    if (role !== 'user') {
+      const header = document.createElement('div');
+      header.className = 'msg-header';
+
+      const ts = document.createElement('span');
+      ts.className = 'msg-timestamp';
+      ts.textContent = timestamp();
+      header.appendChild(ts);
+
+      const badge = document.createElement('span');
+      const routeTag = route || 'llm';
+      const routeCls = ROUTE_CLASSES[routeTag] || 'route-llm';
+      badge.className = `route-badge ${routeCls}`;
+      badge.textContent = routeTag;
+      header.appendChild(badge);
+
+      if (confidence && confidence > 0) {
+        const conf = document.createElement('span');
+        conf.className = 'confidence-indicator';
+        conf.textContent = `${Math.round(confidence * 100)}% match`;
+        header.appendChild(conf);
+      }
+
+      div.appendChild(header);
+    }
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+    div.appendChild(bubble);
+
+    chatEl.appendChild(div);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return div;
+  }
+
+  async function send() {
+    const msg = inputEl.value.trim();
+    if (!msg) return;
+    inputEl.value = '';
+    sendBtn.disabled = true;
+
+    addMsg('user', msg);
+
+    // Thinking indicator
+    const thinking = document.createElement('div');
+    thinking.className = 'msg bot thinking';
+    thinking.innerHTML = '<div class="bubble">processing…</div>';
+    chatEl.appendChild(thinking);
+    chatEl.scrollTop = chatEl.scrollHeight;
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg }),
+      });
+      const data = await res.json();
+      thinking.remove();
+      addMsg('bot', data.response || '(empty response)', data.route, data.confidence);
+    } catch (err) {
+      thinking.remove();
+      addMsg('bot', 'Network error: ' + err.message, 'error');
+    } finally {
+      sendBtn.disabled = false;
+      inputEl.focus();
+    }
+  }
+
+  function quickCmd(cmd) {
+    inputEl.value = cmd;
+    send();
+  }
+
+  sendBtn.addEventListener('click', send);
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  // ── Live stats polling ──────────────────────────────────────
+  async function updateStats() {
+    try {
+      const r = await fetch('/api/status');
+      const d = await r.json();
+      document.getElementById('cpu').textContent  = d.cpu;
+      document.getElementById('ram').textContent  = d.ram_percent;
+      document.getElementById('disk').textContent = d.disk_percent;
+    } catch (_) {}
+  }
+
+  // ── Health check ────────────────────────────────────────────
+  async function checkHealth() {
+    try {
+      const r = await fetch('/api/health');
+      const d = await r.json();
+      const dot = document.getElementById('health-dot');
+      if (d.status === 'healthy') {
+        dot.classList.remove('disconnected');
+      } else {
+        dot.classList.add('disconnected');
+      }
+    } catch (_) {
+      document.getElementById('health-dot').classList.add('disconnected');
+    }
+  }
+
+  updateStats();
+  checkHealth();
+  setInterval(updateStats, 5000);
+  setInterval(checkHealth, 15000);
+  inputEl.focus();
+</script>
+</body>
+</html>

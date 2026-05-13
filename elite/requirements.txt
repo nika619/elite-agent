@@ -1,0 +1,9 @@
+flask>=3.0
+requests>=2.31
+psutil>=5.9
+duckduckgo-search>=6.0
+# optional — needed only for screen agent
+Pillow
+pytesseract
+# optional — needed only for action agent
+pyautogui
