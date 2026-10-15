@@ -93,6 +93,11 @@ INTENT_MAP: dict[str, list[tuple[str, float]]] = {
 # Minimum confidence to route to a specific agent (otherwise → LLM)
 CONFIDENCE_THRESHOLD = 0.25
 
+# Score at which confidence saturates at 1.0 (roughly two strong keyword hits).
+# Dividing by an agent's total keyword weight instead made long keyword lists
+# unreachable: "write a python script" scored 5/23 and fell through to the LLM.
+SATURATION_SCORE = 6.0
+
 
 class Router:
     """
@@ -101,7 +106,7 @@ class Router:
     Scoring algorithm:
     1. Normalize command to lowercase
     2. For each agent, sum weights of matched keywords
-    3. Normalize by max possible weight for that agent
+    3. Scale to 0–1 against SATURATION_SCORE (capped at 1.0)
     4. Select the agent with the highest score above threshold
     5. Fall back to 'llm' if no agent exceeds threshold
     """
@@ -110,10 +115,6 @@ class Router:
         self._intent_map = intent_map or INTENT_MAP
         self._threshold = threshold or CONFIDENCE_THRESHOLD
 
-        # Pre-compute max weights for normalization
-        self._max_weights: dict[str, float] = {}
-        for agent, keywords in self._intent_map.items():
-            self._max_weights[agent] = sum(w for _, w in keywords)
 
     def classify(self, command: str) -> RouteResult:
         """
@@ -138,8 +139,7 @@ class Router:
                     score += weight
                     matched.append(keyword)
 
-            max_weight = self._max_weights.get(agent, 1.0)
-            normalized = score / max_weight if max_weight > 0 else 0.0
+            normalized = min(score / SATURATION_SCORE, 1.0)
 
             if normalized > best_score:
                 best_score = normalized
