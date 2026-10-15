@@ -171,3 +171,8 @@ Python · Flask · Ollama · DeepSeek-R1 · Pydantic · Rich · DuckDuckGo Searc
 ## 👤 Author
 
 **Mayank Tiwari** — ELITE AI Agent System v2.0
+
+
+---
+
+Built by [Mayank Tiwari](https://github.com/nika619) · [Hire me on Contra](https://contra.com/mayank_tiwari_a4vkcjsh)
