@@ -1,5 +1,7 @@
 # 🤖 ELITE AI Agent v2.0 — Enterprise Edition
 
+[![CI](https://github.com/nika619/elite-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/nika619/elite-agent/actions/workflows/ci.yml)
+
 > Fully local, autonomous AI agent system powered by **DeepSeek-R1 + Ollama**.
 > Enterprise-grade architecture with proper separation of concerns, structured logging, and a plugin-based agent system.
 
