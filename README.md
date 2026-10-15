@@ -9,8 +9,8 @@
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/yourusername/elite-v2.git
-cd elite-v2
+git clone https://github.com/nika619/elite-agent.git
+cd elite-agent
 
 # 2. Create virtual environment
 python -m venv venv
